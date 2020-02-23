@@ -31,22 +31,27 @@ export class UserService {
     }
 
     public async addNewUser(req: Request, res: Response) {
-        let userModel = new User(req.body);
-        let serverResponseTemplate = new ServerResponseTemplate();
-        userModel.password = await bcrypt.hash(userModel.password, SALT_LIMIT);
-        const newUser = new UserSchema(userModel);
-        newUser.save((error: Error, user: MongooseDocument) => {
-            if (error) {
-                serverResponseTemplate.ack = false;
-                serverResponseTemplate.message = error.message;
-                res.send(serverResponseTemplate);
-                return;
-            }
-            serverResponseTemplate.ack = true;
-            serverResponseTemplate.results = user.id;
-            serverResponseTemplate.message = 'User added successfully';
-            res.json(serverResponseTemplate);
-        });
+        try {
+            let userModel = new User(req.body);
+            let serverResponseTemplate = new ServerResponseTemplate();
+            userModel.password = await bcrypt.hash(userModel.password, SALT_LIMIT);
+            const newUser = new UserSchema(userModel);
+            newUser.save((error: Error, user: MongooseDocument) => {
+                if (error) {
+                    serverResponseTemplate.ack = false;
+                    serverResponseTemplate.message = error.message;
+                    res.send(serverResponseTemplate);
+                    return;
+                }
+                serverResponseTemplate.ack = true;
+                serverResponseTemplate.results = user.id;
+                serverResponseTemplate.message = 'User added successfully';
+                res.json(serverResponseTemplate);
+            });
+        } catch (err) {
+            res.send(err);
+        }
+
     }
 
     public deleteUser(req: Request, res: Response) {
@@ -76,7 +81,7 @@ export class UserService {
                 response.ack = false;
             } else {
                 console.log(userDetails);
-                let validatedUser:User = new User(userDetails);
+                let validatedUser: User = new User(userDetails);
                 let hash: string = userDetails.password.toString();
                 response.ack = bcrypt.compareSync(user.password, hash);
                 response.results = validatedUser.id;
@@ -99,36 +104,40 @@ export class UserService {
 
     public async updateUser(req: Request, res: Response) {
 
-        const updatedUser = new User(req.body);
-        //get password
-        const success = await UserSchema.findById(updatedUser.id, (error: Error, relevantUser: User) => {
-            if (error) {
-                res.send(error);
-                return false;;
+        try {
+            const updatedUser = new User(req.body);
+            //get password
+            const success = await UserSchema.findById(updatedUser.id, (error: Error, relevantUser: User) => {
+                if (error) {
+                    res.send(error);
+                    return false;;
+                }
+                updatedUser.password = relevantUser.password;
+                return true;
+            });
+            if (success) {
+                UserSchema.findByIdAndUpdate(
+                    updatedUser.id,
+                    updatedUser,
+                    { runValidators: true },
+                    (error: Error, updated: any) => {
+                        if (error) {
+                            res.send(error);
+                            return;
+                        }
+                        let response: ServerResponseTemplate = new ServerResponseTemplate();
+                        if (updated) {
+                            response.ack = true;
+                            response.message = 'User updated successfully'
+                        } else {
+                            response.ack = false;
+                            response.message = 'User not found!';
+                        }
+                        res.send(response);
+                    });
             }
-            updatedUser.password = relevantUser.password;
-            return true;
-        });
-        if (success) {
-            UserSchema.findByIdAndUpdate(
-                updatedUser.id,
-                updatedUser,
-                {runValidators: true},
-                (error: Error, updated: any) => {
-                    if (error) {
-                        res.send(error);
-                        return;
-                    }
-                    let response: ServerResponseTemplate = new ServerResponseTemplate();
-                    if (updated) {
-                        response.ack = true;
-                        response.message = 'User updated successfully'
-                    } else {
-                        response.ack = false;
-                        response.message = 'User not found!';
-                    }
-                    res.send(response);
-                });
+        } catch (err) {
+            res.send(err);
         }
     }
 

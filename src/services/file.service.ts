@@ -89,49 +89,34 @@ export class FileService {
 
     }
 
-    // public async deleteFolder(path: string) {
-    //     let folderBreaks: number[] = [];
-    //     for (let i = 0; i < path.length; i++) {
-    //         const character = path.charAt(i);
-    //         if (character === '/') {
-    //             folderBreaks.push(i);
-    //         }
-    //     }
-    //     folderBreaks.splice(0.2);
-    //     if(folderBreaks.length>0){
-    //         for(let slash in folderBreaks){
-    //             console.log(path.substring(0,Number(slash)));
-    //         }
-    //     }
-    // }
-
     public async downloadFile(req: Request, res: Response) {
 
-        let requestedFile = new MediaFile(req.query);
-        const validity = await MediaFileSchema.findOne({ _id: req.query.id, ownerId: req.query.ownerId }, (error: Error, media: MediaFile) => {
-            if (error) {
-                res.send(null);
-                return false;
-            }
-            if (media == null) {
-                res.send(null);
-                return false;
-            } else {
-                requestedFile = new MediaFile(media);
-                return true;
-            }
-        });
-        if (validity) {
-            try {
+        try {
+            let requestedFile = new MediaFile(req.query);
+            const validity = await MediaFileSchema.findOne({ _id: req.query.id, ownerId: req.query.ownerId }, (error: Error, media: MediaFile) => {
+                if (error) {
+                    res.send(null);
+                    return false;
+                }
+                if (media == null) {
+                    res.send(null);
+                    return false;
+                } else {
+                    requestedFile = new MediaFile(media);
+                    return true;
+                }
+            });
+            if (validity) {
+
                 let file = fs.createReadStream(__dirname + '/../../' + requestedFile.getFullPath());
                 file.on('open', function () {
                     file.pipe(res);
                 })
             }
-            catch (err) {
-                res.send(err);
-            }
+        } catch (err) {
+            res.send(err);
         }
+
 
     }
 
