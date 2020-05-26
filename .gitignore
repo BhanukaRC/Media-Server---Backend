@@ -6,3 +6,4 @@ RootFolder
 mediaData
 .git
 .vscode
+.npmrc
